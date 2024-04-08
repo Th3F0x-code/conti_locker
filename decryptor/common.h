@@ -2,7 +2,7 @@
 #include <WinSock2.h>
 #include <string>
 #include <iostream>
-#include "MetaString.h"
+#include "obfuscation/MetaString.h"
 
 #define STATIC static
 

